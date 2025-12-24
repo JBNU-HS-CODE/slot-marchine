@@ -21,31 +21,34 @@ body {
 }
 
 .machine {
-    width: 440px;
     background: linear-gradient(180deg, #1a1a1a, #000);
     border-radius: 24px;
     padding: 32px;
+    width: 420px;
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.15);
 }
 
 .title {
     text-align: center;
     font-size: 28px;
     font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
     color: gold;
-    margin-bottom: 8px;
 }
 
-.stat {
+.ticket {
     text-align: center;
-    font-size: 15px;
+    margin-bottom: 6px;
+    font-size: 16px;
+    font-weight: 600;
     color: #ffd700;
-    margin-bottom: 4px;
 }
 
 .reels {
     display: flex;
-    justify-content: center;
     gap: 16px;
+    justify-content: center;
     margin: 24px 0;
 }
 
@@ -74,37 +77,38 @@ body {
 
 .controls {
     display: flex;
-    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
 }
 
 button {
-    flex: 1;
+    background: linear-gradient(180deg, gold, #b8860b);
     border: none;
     border-radius: 999px;
-    padding: 10px;
-    font-size: 14px;
+    padding: 12px 24px;
+    font-size: 16px;
     font-weight: 700;
     cursor: pointer;
-    background: linear-gradient(180deg, gold, #b8860b);
 }
 
 .result {
+    margin-top: 16px;
     text-align: center;
-    margin-top: 12px;
     min-height: 24px;
+    font-size: 18px;
 }
 
-.lose { color: #f33; }
+.lose {
+    color: #f33;
+}
 </style>
 </head>
 
 <body>
 <div class="machine">
     <div class="title">SLOT MACHINE</div>
-    <div class="stat" id="money">$0</div>
-    <div class="stat" id="tickets">Tickets: 0</div>
-    <div class="stat" id="clicks">Clicks: 0 / 1000</div>
-    <div class="stat" id="chance">Jackpot: 0.01%</div>
+    <div class="ticket" id="ticketDisplay">Tickets: 0</div>
+    <div class="ticket" id="clickDisplay">Clicks: 0 / 1000</div>
 
     <div class="reels">
         <div class="reel"><div class="numbers"></div></div>
@@ -114,8 +118,7 @@ button {
 
     <div class="controls">
         <button id="spin">SPIN</button>
-        <button id="buy">$10 → 🎟</button>
-        <button id="up">$1000 → ×1.5</button>
+        <button id="buy">+1000 CLICK</button>
     </div>
 
     <div class="result" id="result"></div>
@@ -125,128 +128,131 @@ button {
 const reels = document.querySelectorAll(".numbers");
 const spinBtn = document.getElementById("spin");
 const buyBtn = document.getElementById("buy");
-const upBtn = document.getElementById("up");
+const result = document.getElementById("result");
+const ticketDisplay = document.getElementById("ticketDisplay");
+const clickDisplay = document.getElementById("clickDisplay");
 
-const moneyEl = document.getElementById("money");
-const ticketEl = document.getElementById("tickets");
-const clickEl = document.getElementById("clicks");
-const chanceEl = document.getElementById("chance");
-const resultEl = document.getElementById("result");
-
-const SYMBOLS = 10;
+const SYMBOLS = [0,1,2,3,4,5,6,7,8,9];
 const REPEAT = 20;
-const BASE_CHANCE = 0.0001;
+const JACKPOT_CHANCE = 0.0001;
 
 const url = new URL(location.href);
-const p = url.searchParams;
+const params = url.searchParams;
 
-let money = +p.get("money") || 0;
-let tickets = +p.get("ticket") || 0;
-let clicks = +p.get("click") || 0;
-let mul = +p.get("mul") || 1;
+let tickets = parseInt(params.get("ticket"), 10);
+let clicks = parseInt(params.get("click"), 10);
 
-function save() {
-    p.set("money", money);
-    p.set("ticket", tickets);
-    p.set("click", clicks);
-    p.set("mul", mul);
+if (isNaN(tickets) || tickets < 0) tickets = 0;
+if (isNaN(clicks) || clicks < 0) clicks = 0;
+
+function updateUrl() {
+    params.set("ticket", tickets);
+    params.set("click", clicks);
     history.replaceState(null, "", url.toString());
 }
 
 function render() {
-    moneyEl.textContent = `$${money}`;
-    ticketEl.textContent = `Tickets: ${tickets}`;
-    clickEl.textContent = `Clicks: ${clicks} / 1000`;
-    chanceEl.textContent = `Jackpot: ${(BASE_CHANCE * mul * 100).toFixed(4)}%`;
+    ticketDisplay.textContent = `Tickets: ${tickets}`;
+    clickDisplay.textContent = `Clicks: ${clicks} / 1000`;
 }
 
-function build(r) {
-    r.innerHTML = "";
+function buildReel(reel) {
+    reel.innerHTML = "";
     for (let i = 0; i < REPEAT; i++) {
-        for (let n = 0; n < SYMBOLS; n++) {
-            const d = document.createElement("div");
-            d.className = "number";
-            d.textContent = n;
-            r.appendChild(d);
+        for (const n of SYMBOLS) {
+            const div = document.createElement("div");
+            div.className = "number";
+            div.textContent = n;
+            reel.appendChild(div);
         }
     }
 }
 
-reels.forEach(build);
+reels.forEach(buildReel);
 render();
 
 function spin() {
     if (tickets <= 0) {
-        resultEl.textContent = "No tickets";
-        resultEl.classList.add("lose");
+        result.textContent = "No tickets";
+        result.classList.add("lose");
         return;
     }
 
-    tickets--;
-    save(); render();
+    tickets -= 1;
+    updateUrl();
+    render();
 
     spinBtn.disabled = true;
-    resultEl.textContent = "";
+    result.textContent = "";
 
-    const jackpot = Math.random() < BASE_CHANCE * mul;
-    const vals = jackpot
-        ? Array(3).fill(Math.floor(Math.random() * 10))
-        : Array.from({length:3}, () => Math.floor(Math.random()*10));
+    const isJackpot = Math.random() < JACKPOT_CHANCE;
+    let finalValues;
 
-    reels.forEach((r,i) => {
-        const steps = (1 + Math.floor(Math.random()*3)) * 10 + vals[i];
-        r.style.transition = "none";
-        r.style.transform = "translateY(0)";
-        r.offsetHeight;
-        r.style.transition = `transform ${1.2+i*0.3}s cubic-bezier(.21,.61,.35,1)`;
-        r.style.transform = `translateY(-${steps*100}px)`;
+    if (isJackpot) {
+        const v = Math.floor(Math.random() * 10);
+        finalValues = [v, v, v];
+    } else {
+        do {
+            finalValues = [
+                Math.floor(Math.random() * 10),
+                Math.floor(Math.random() * 10),
+                Math.floor(Math.random() * 10)
+            ];
+        } while (finalValues[0] === finalValues[1] && finalValues[1] === finalValues[2]);
+    }
+
+    reels.forEach((reel, i) => {
+        const fullSpins = 1 + Math.floor(Math.random() * 3);
+        const steps = fullSpins * SYMBOLS.length + finalValues[i];
+
+        reel.style.transition = "none";
+        reel.style.transform = "translateY(0)";
+        reel.offsetHeight;
+
+        reel.style.transition = `transform ${1.2 + i * 0.3}s cubic-bezier(.21,.61,.35,1)`;
+        reel.style.transform = `translateY(-${steps * 100}px)`;
     });
 
     setTimeout(() => {
         spinBtn.disabled = false;
-        if (jackpot) {
-            money += 100;
-            resultEl.textContent = "JACKPOT +$100";
-        } else {
-            resultEl.textContent = "Try again";
-            resultEl.classList.add("lose");
-        }
-        save(); render();
+        result.textContent = isJackpot ? "JACKPOT!" : "Try again";
+        result.classList.toggle("lose", !isJackpot);
     }, 1800);
 }
 
-spinBtn.onclick = spin;
+spinBtn.addEventListener("click", spin);
 
-buyBtn.onclick = () => {
-    if (money < 10) return;
-    money -= 10;
-    tickets++;
-    save(); render();
-};
-
-upBtn.onclick = () => {
-    if (money < 1000) return;
-    money -= 1000;
-    mul *= 1.5;
-    save(); render();
-};
-
-const CLICK_KEYS = new Set(["KeyA","KeyS","KeyD","KeyJ","KeyK","KeyL"]);
-document.addEventListener("keydown", e => {
-    if (e.code === "Space") {
-        e.preventDefault();
-        spin();
-        return;
-    }
-    if (!CLICK_KEYS.has(e.code)) return;
-
-    clicks++;
+buyBtn.addEventListener("click", () => {
+    clicks += 1;
     if (clicks >= 1000) {
         clicks -= 1000;
-        money += 1;
+        tickets += 1;
     }
-    save(); render();
+    updateUrl();
+    render();
 });
+
+const CLICK_KEYS = new Set(["KeyA", "KeyS", "KeyD", "KeyJ", "KeyK", "KeyL"]);
+document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+        e.preventDefault();
+        if (!spinBtn.disabled) spin();
+        return;
+    }
+
+    if (!CLICK_KEYS.has(e.code)) return;
+
+    clicks += 1;
+
+    if (clicks >= 1000) {
+        clicks -= 1000;
+        tickets += 1;
+    }
+
+    updateUrl();
+    render();
+});
+
 </script>
 </body>
 </html>

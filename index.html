@@ -232,11 +232,27 @@ buyBtn.addEventListener("click", () => {
     render();
 });
 
-document.addEventListener("keydown", e => {
-    if (e.code !== "Space") return;
-    e.preventDefault();
-    if (!spinBtn.disabled) spin();
+const CLICK_KEYS = new Set(["KeyA", "KeyS", "KeyD", "KeyJ", "KeyK", "KeyL"]);
+document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+        e.preventDefault();
+        if (!spinBtn.disabled) spin();
+        return;
+    }
+
+    if (!CLICK_KEYS.has(e.code)) return;
+
+    clicks += 1;
+
+    if (clicks >= 1000) {
+        clicks -= 1000;
+        tickets += 1;
+    }
+
+    updateUrl();
+    render();
 });
+
 </script>
 </body>
 </html>

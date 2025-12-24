@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Slot Machine</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+        margin: 0;
+        height: 100vh;
+        background: radial-gradient(circle at top, #222 0%, #000 70%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+    }
+
+    .machine {
+        background: linear-gradient(180deg, #1a1a1a, #000);
+        border-radius: 24px;
+        padding: 32px;
+        width: 360px;
+        box-shadow:
+            0 0 40px rgba(255, 215, 0, 0.15),
+            inset 0 0 20px rgba(255, 255, 255, 0.05);
+    }
+
+    .title {
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin-bottom: 24px;
+        color: gold;
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+    }
+
+    .reels {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin-bottom: 28px;
+    }
+
+    .reel {
+        width: 80px;
+        height: 100px;
+        background: #111;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow:
+            inset 0 0 10px rgba(0,0,0,0.8),
+            0 0 12px rgba(255, 215, 0, 0.2);
+        position: relative;
+    }
+
+    .numbers {
+        position: absolute;
+        top: 0;
+        width: 100%;
+        transition: transform 1.2s cubic-bezier(.21,.61,.35,1);
+    }
+
+    .number {
+        height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        font-weight: 800;
+        color: #fff;
+        text-shadow: 0 0 12px rgba(255,255,255,0.6);
+    }
+
+    .controls {
+        display: flex;
+        justify-content: center;
+    }
+
+    button {
+        background: linear-gradient(180deg, gold, #b8860b);
+        border: none;
+        border-radius: 999px;
+        padding: 14px 36px;
+        font-size: 18px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow:
+            0 6px 0 #7a5a00,
+            0 12px 20px rgba(0,0,0,0.6);
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    button:active {
+        transform: translateY(4px);
+        box-shadow:
+            0 2px 0 #7a5a00,
+            0 6px 12px rgba(0,0,0,0.6);
+    }
+
+    .result {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 18px;
+        min-height: 24px;
+        color: #0f0;
+        text-shadow: 0 0 10px rgba(0,255,0,0.6);
+    }
+
+    .lose {
+        color: #f33;
+        text-shadow: 0 0 10px rgba(255,0,0,0.6);
+    }
+</style>
+</head>
+
+<body>
+<div class="machine">
+    <div class="title">SLOT MACHINE</div>
+
+    <div class="reels">
+        <div class="reel"><div class="numbers"></div></div>
+        <div class="reel"><div class="numbers"></div></div>
+        <div class="reel"><div class="numbers"></div></div>
+    </div>
+
+    <div class="controls">
+        <button id="spin">SPIN</button>
+    </div>
+
+    <div class="result" id="result"></div>
+</div>
+
+<script>
+    const reels = document.querySelectorAll(".numbers");
+    const result = document.getElementById("result");
+    const spinBtn = document.getElementById("spin");
+
+    const SYMBOLS = [0,1,2,3,4,5,6,7,8,9];
+    const REPEAT = 20;
+    const JACKPOT_CHANCE = 0.0001; // 0.01%
+
+    function buildReel(reel) {
+        reel.innerHTML = "";
+        for (let i = 0; i < REPEAT; i++) {
+            for (const n of SYMBOLS) {
+                const div = document.createElement("div");
+                div.className = "number";
+                div.textContent = n;
+                reel.appendChild(div);
+            }
+        }
+    }
+
+    reels.forEach(buildReel);
+
+    function spin() {
+        spinBtn.disabled = true;
+        result.textContent = "";
+
+        const isJackpot = Math.random() < JACKPOT_CHANCE;
+        let finalValues;
+
+        if (isJackpot) {
+            const v = Math.floor(Math.random() * SYMBOLS.length);
+            finalValues = [v, v, v];
+        } else {
+            do {
+                finalValues = [
+                    Math.floor(Math.random() * SYMBOLS.length),
+                    Math.floor(Math.random() * SYMBOLS.length),
+                    Math.floor(Math.random() * SYMBOLS.length)
+                ];
+            } while (finalValues[0] === finalValues[1] && finalValues[1] === finalValues[2]);
+        }
+
+        reels.forEach((reel, index) => {
+            const value = finalValues[index];
+
+            const fullSpins = 1 + Math.floor(Math.random() * 3);
+            const totalSteps = fullSpins * SYMBOLS.length + value;
+
+            reel.style.transition = "none";
+            reel.style.transform = "translateY(0)";
+            reel.offsetHeight;
+
+            reel.style.transition =
+                `transform ${1.2 + index * 0.3}s cubic-bezier(.21,.61,.35,1)`;
+            reel.style.transform = `translateY(-${totalSteps * 100}px)`;
+        });
+
+        setTimeout(() => {
+            spinBtn.disabled = false;
+
+            if (isJackpot) {
+                result.textContent = "JACKPOT!";
+                result.classList.remove("lose");
+            } else {
+                result.textContent = "ㄲㅂ";
+                result.classList.add("lose");
+            }
+        }, 1800);
+    }
+
+    spinBtn.addEventListener("click", spin);
+</script>
+</body>
+</html>

@@ -219,6 +219,7 @@ button:disabled {
             <option value="low">하 (7%)</option>
             <option value="mid">중 (1.5%)</option>
             <option value="high">상 (0.7%)</option>
+            <option value="imposible">불가능(0.01%)<option>
         </select>
     </div>
 
@@ -256,7 +257,8 @@ const JACKPOT_CHANCE = 0.0001;
 const DIFFICULTY_RATE = {
     low: 0.07,
     mid: 0.015,
-    high: 0.007
+    high: 0.007,
+    imposible: 0.0001
 };
 
 const difficultySelect = document.getElementById("difficultySelect");
